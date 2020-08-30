@@ -8,10 +8,11 @@ import { persistCache } from "apollo-cache-persist";
 import { createUploadLink } from "apollo-upload-client";
 import App from "./App";
 
+// キャッシュのつなぎこみと永続化
 const cache = new InMemoryCache();
 persistCache({
   cache,
-  storage: localStorage,
+  storage: localStorage, // TODO: localStorage は使わない https://techracho.bpsinc.jp/hachi8833/2019_10_09/80851
 });
 
 if (localStorage["apollo-cache-persist"]) {
@@ -19,6 +20,7 @@ if (localStorage["apollo-cache-persist"]) {
   cache.restore(cacheData);
 }
 
+// バックエンドと接続する場所を設定する
 const httpLink = createUploadLink({
   uri: "http://localhost:4000/graphql",
 });
@@ -39,6 +41,8 @@ const authLink = new ApolloLink((operation, forward) => {
 
 const httpAuthLink = authLink.concat(httpLink);
 
+// GraphQL のオペレーションが Subscription の場合は WebSocket で接続
+// query か mutation の場合は HTTP で接続
 const link = split(
   ({ query }) => {
     const { kind, operation } = getMainDefinition(query);
@@ -54,7 +58,9 @@ const client = new ApolloClient({
 });
 
 render(
-  <ApolloProvider client={client}>
+  <ApolloProvider
+    client={client} // コンポーネントがGraphQLサービスからデータを受け取れるようになる redux でいう store との接続
+  >
     <App />
   </ApolloProvider>,
   document.getElementById("root")
